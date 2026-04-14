@@ -69,5 +69,8 @@ public class CardController : MonoBehaviour
         GetComponent<Image>().color = newcolor;
     }
 
-
+    public void SetImage(Sprite sprite)
+    {
+        GetComponent<Image>().sprite = sprite;
+    }
 }

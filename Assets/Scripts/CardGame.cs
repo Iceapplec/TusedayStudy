@@ -6,6 +6,8 @@ public class CardGame : MonoBehaviour
 {
 
     public List<CardController> cards = new List<CardController>();
+    public List<Sprite> sprites = new List<Sprite>();
+
     private CardController firstCard = null;
     private CardController SecondCard = null;
     private bool isChecking = false;
@@ -25,7 +27,7 @@ public class CardGame : MonoBehaviour
         {
             cards[i].SetCardNumber(pairNumbers[i]);
 
-
+            cards[i].SetImage(sprites[pairNumbers[i]]);
         }
         for(int i = 0; i < cards.Count; ++i)
         {
