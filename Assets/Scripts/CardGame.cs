@@ -1,130 +1,97 @@
-using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 
 public class CardGame : MonoBehaviour
 {
+    [Tooltip("페어 개수 (각 숫자별로 2장의 카드가 생성됩니다)")]
+    public int pairCount = 6;
 
-    public List<CardController> cards = new List<CardController>();
-    public List<Sprite> sprites = new List<Sprite>();
+    [Tooltip("카드 프리팹 (CardController 포함)")]
+    public GameObject cardPrefab;
 
-    private CardController firstCard = null;
-    private CardController SecondCard = null;
-    private bool isChecking = false;
+    [Tooltip("생성된 카드를 담을 부모(예: GridLayoutGroup이 붙은 UI 오브젝트)")]
+    public Transform cardParent;
+
+    private List<int> deck = new List<int>();
 
     void Start()
     {
-        StartGgame();
-       
+        GenerateDeck();
+        CreateCards();
     }
 
-    //카드 섞고, 다 뒤집기
-    void StartGgame()
+    // 페어별로 숫자를 생성하고 섞음
+    public void GenerateDeck()
     {
-        List<int> pairNumbers = GeneratePairNumbers(cards.Count);
-
-        for (int i = 0; i < pairNumbers.Count; ++i)
+        deck.Clear();
+        for (int i = 1; i <= Mathf.Max(0, pairCount); i++)
         {
-            cards[i].SetCardNumber(pairNumbers[i]);
-
-            cards[i].SetImage(sprites[pairNumbers[i]]);
+            deck.Add(i);
+            deck.Add(i);
         }
-        for(int i = 0; i < cards.Count; ++i)
-        {
-            cards[i].isFront = false;
-
-        }
+        Shuffle(deck);
     }
 
-    void CheckCard()
+    // 카드 인스턴스 생성 및 초기화
+    public void CreateCards()
     {
-        isChecking = true;
-
-        if (firstCard.number == SecondCard.number)
+        if (cardPrefab == null)
         {
-            firstCard.ChangeColor(Color.red);
-            SecondCard.ChangeColor(Color.red);
-
-            firstCard.isMatched = true;
-            SecondCard.isMatched = true;
-
-            firstCard = null;
-            SecondCard = null;
-
-            isChecking = false;
-        }
-        else
-        {
-            Invoke("HideCard", 1.0f);
-            //다시 뒤집기
-        }
-    }
-
-    public void OnClickCard(CardController cardController)
-    {
-        if (isChecking)
-        {
+            Debug.LogError("CardGame: cardPrefab이 할당되지 않았습니다.");
             return;
         }
 
-        
-        if (firstCard == null)
+        if (cardParent == null)
         {
-            firstCard = cardController;
-            firstCard.Flip(true);
-        }
-        else
-        {
-            SecondCard = cardController;
-            SecondCard.Flip(true);
+            Debug.LogError("CardGame: cardParent가 할당되지 않았습니다.");
+            return;
         }
 
-        if(firstCard != null &&  SecondCard != null)
+        // 기존 자식 제거
+        for (int i = cardParent.childCount - 1; i >= 0; i--)
         {
-            CheckCard();
+            Destroy(cardParent.GetChild(i).gameObject);
         }
-    
-    }
-    //다시 숨기기
-    void HideCard()
-    {
-        firstCard.isFront = false;
-        SecondCard.isFront = false;
 
-        firstCard.Flip(false);
-        SecondCard.Flip(false);
-
-        isChecking = false;
-
-        firstCard = null;
-        SecondCard = null;
-    
-
-        
+        // 덱 크기만큼 카드 생성
+        for (int i = 0; i < deck.Count; i++)
+        {
+            GameObject go = Instantiate(cardPrefab, cardParent);
+            CardController cc = go.GetComponent<CardController>();
+            if (cc != null)
+            {
+                cc.cardGame = this;
+                cc.SetCardNumber(deck[i]);
+                // 초기 상태(뒷면 보이기 등) 설정 원하면 조정
+                cc.Flip(false);
+                cc.isMatched = false;
+            }
+        }
     }
 
-    //무작위 페어 넘버 알고리즘
-    List<int> GeneratePairNumbers(int cardCount)
+    // 단순 섞기 (Fisher-Yates)
+    private void Shuffle<T>(List<T> list)
     {
-        int pairCount = cardCount / 2;
-        List<int> newCardNumbers = new List<int>();
-
-        for (int i = 0; i < pairCount; ++i)
+        for (int i = list.Count - 1; i > 0; i--)
         {
-            newCardNumbers.Add(i);
-            newCardNumbers.Add(i);
+            int j = Random.Range(0, i + 1);
+            T tmp = list[i];
+            list[i] = list[j];
+            list[j] = tmp;
         }
+    }
 
-        for(int i = newCardNumbers.Count -1; i > 0; i--)
-        {
+    // CardController에서 클릭 시 호출됩니다 (간단 예시)
+    public void OnClickCard(CardController clicked)
+    {
+        // 여기서 매칭 로직을 구현하세요.
+        Debug.Log($"Card clicked: {clicked.number}");
+    }
 
-            int rnd = Random.Range(0, i + 1);
-            int temp = newCardNumbers[i];
-            newCardNumbers[i] = newCardNumbers[rnd];
-            newCardNumbers[rnd] = temp;
-
-        }
-
-        return newCardNumbers;
+    // 런타임에 재생성이 필요하면 호출
+    public void Regenerate()
+    {
+        GenerateDeck();
+        CreateCards();
     }
 }
